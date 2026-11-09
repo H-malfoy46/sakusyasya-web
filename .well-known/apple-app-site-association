@@ -1,0 +1,13 @@
+{
+  "applinks": {
+    "details": [
+      {
+        "appIDs": ["7C4N9MD552.com.malfoy010.osyacole"],
+        "components": [
+          { "/": "/t", "comment": "交換票の入口（コードは # の後ろ）" },
+          { "/": "/t/*" }
+        ]
+      }
+    ]
+  }
+}
