@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>交換票 | サク写シャッ!</title>
+<!-- X などに貼ったときのカード（中身は # の後ろなので、全員同じカードになる） -->
+<meta property="og:title" content="サク写シャッ! の交換票">
+<meta property="og:description" content="譲れる写真・欲しい写真が一目で分かります">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<header>サク写シャッ! 交換票</header>
+<main>
+  <div id="ended" class="card error" hidden>
+    無料公開の期間は終了しました（11/21 12:00 まで）。ご利用ありがとうございました。
+  </div>
+  <div id="error" class="card error" hidden></div>
+  <section id="slip" class="card" hidden>
+    <div id="heading" class="heading"></div>
+    <div id="table"></div>
+  </section>
+  <section id="qrcard" class="card center" hidden>
+    <div id="qr"></div>
+  </section>
+  <section class="card">
+    <a class="btn" href="../">自分の交換票を作る</a>
+    <a class="btn secondary" id="store" href="#" rel="noopener">App Store で開く</a>
+  </section>
+</main>
+<footer>サク写シャッ! は非公式のファンアプリです。</footer>
+<script src="../vendor/qrcode-generator-1.4.4.js"></script>
+<script type="module" src="../js/link.js"></script>
+</body>
+</html>
