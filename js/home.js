@@ -110,11 +110,11 @@ function drawScenes() {
   $('scenes').replaceChildren(...out);
 }
 
-const LONG_PRESS_MS = 3000; // 譲を 0 に戻す長押し（本人指示：3秒くらい）
+const LONG_PRESS_MS = 2000; // 譲を削除する長押し（本人指示 11/11：2秒。確認を出してから消す）
 
 /**
  * 種類のマス。求は押すたびに入／切。譲は押すたびに枚数が増え（2枚以上は数字だけ大きく出す）、
- * 3秒の長押しで 0 に戻す（アプリと同じ）。枚数はこの端末の中だけで、コードには「あるかないか」だけ入る。
+ * 2秒の長押しで「トレ材から削除しますか？」を出し、OK なら 0 に戻す（アプリと同じ）。枚数はこの端末の中だけで、コードには「あるかないか」だけ入る。
  * ⚠️ スマホでは click が届かないことがあったので、譲は「指を離した時」に数える（pointerup）。
  *   click は、キーボード操作など pointer が無い場合の予備（二重に数えない）。
  */
@@ -162,7 +162,7 @@ function makeChip(key, label, set, otherSet) {
       chip.classList.add('holding');
       timer = setTimeout(() => {
         longDone = true;
-        if (on) {
+        if (on && confirm('トレ材から削除しますか？')) {
           set.delete(key);
           delete mine.count[key];
           persist();
