@@ -177,3 +177,5 @@ footer { text-align: center; font-size: 12px; color: var(--navy-light); padding:
 .hist:first-child { margin-top: 8px; }
 .hist-time { color: var(--navy-light); font-size: 12px; flex: none; }
 footer a { color: var(--navy-light); }
+.chip.holding { transform: scale(.96); }
+.tabs.side button.on { border-color: var(--navy); background: var(--navy); color: #fff; }

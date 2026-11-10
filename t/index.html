@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob:; style-src 'self'; script-src 'self'; connect-src 'self'; media-src 'self' blob: mediastream:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>交換票 | サク写シャッ!</title>
 <!-- X などに貼ったときのカード（中身は # の後ろなので、全員同じカードになる） -->
 <meta property="og:title" content="サク写シャッ! の交換票">
@@ -21,11 +21,25 @@
   </div>
   <div id="error" class="card error" hidden></div>
   <section id="slip" class="card" hidden>
+    <div class="tabs side">
+      <button id="sideOther" class="on" type="button">相手の交換票</button>
+      <button id="sideMine" type="button">自分の交換票</button>
+    </div>
     <div id="heading" class="heading"></div>
     <div id="table"></div>
   </section>
   <section id="qrcard" class="card center" hidden>
     <div id="qr"></div>
+    <button id="scan" class="btn secondary" type="button">相手のコードを読み取る</button>
+  </section>
+
+  <!-- 相手のコードを読む -->
+  <section id="scanner" class="card center" hidden>
+    <video id="video" playsinline muted></video>
+    <canvas id="canvas" hidden></canvas>
+    <label class="btn secondary" for="photo">写真から読み取る</label>
+    <input id="photo" type="file" accept="image/*" hidden>
+    <button id="stopScan" class="btn secondary" type="button">閉じる</button>
   </section>
   <section class="card">
     <a class="btn" href="../">自分の交換票を作る</a>
@@ -33,7 +47,9 @@
   </section>
 </main>
 <footer>サク写シャッ! は非公式のファンアプリです<br><a href="https://sites.google.com/view/sakusyashh-privacy-policy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a></footer>
+<div id="toast" class="toast" hidden></div>
 <script src="../vendor/qrcode-generator-1.4.4.js"></script>
+<script src="../vendor/jsQR-1.4.0.js"></script>
 <script type="module" src="../js/link.js"></script>
 </body>
 </html>

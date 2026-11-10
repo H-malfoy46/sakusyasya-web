@@ -7,7 +7,8 @@
 // ・11/21 12:00 を過ぎたら、保存を消して終了の案内だけ出す（common.js）
 
 import { checkOpenOrClose, loadCodec, loadHistory, loadMine, saveMine } from './common.js';
-import { LINK_BASE, extractCode } from './codec.js';
+import { LINK_BASE } from './codec.js';
+import { createScanner } from './scan.js';
 import { displayMember, el, poseLabel, renderQr } from './view.js';
 
 const $ = (id) => document.getElementById(id);
@@ -16,6 +17,11 @@ let codec;
 let mine = { name: '', give: new Set(), want: new Set(), count: {} };
 let lookingFor = true; // true＝求を選んでいる、false＝譲
 const openScenes = new Set();
+
+const scanner = createScanner({
+  toast: (m) => toast(m),
+  onCode: (code) => { location.href = `t/#${encodeURIComponent(code)}`; },
+});
 
 async function main() {
   if (!checkOpenOrClose()) {
@@ -53,9 +59,9 @@ async function main() {
   $('showQr').addEventListener('click', showQr);
   $('copy').addEventListener('click', copyLink);
   $('share').addEventListener('click', shareLink);
-  $('scan').addEventListener('click', startScan);
-  $('stopScan').addEventListener('click', stopScan);
-  $('photo').addEventListener('change', readPhoto);
+  $('scan').addEventListener('click', scanner.start);
+  $('stopScan').addEventListener('click', scanner.stop);
+  $('photo').addEventListener('change', scanner.readPhoto);
   if (!navigator.share) $('share').hidden = true;
 
   drawScenes();
@@ -104,9 +110,13 @@ function drawScenes() {
   $('scenes').replaceChildren(...out);
 }
 
+const LONG_PRESS_MS = 3000; // 譲を 0 に戻す長押し（本人指示：3秒くらい）
+
 /**
  * 種類のマス。求は押すたびに入／切。譲は押すたびに枚数が増え（2枚以上は数字だけ大きく出す）、
- * 長押しで 0 に戻す（アプリと同じ）。枚数はこの端末の中だけで、コードには「あるかないか」だけ入る。
+ * 3秒の長押しで 0 に戻す（アプリと同じ）。枚数はこの端末の中だけで、コードには「あるかないか」だけ入る。
+ * ⚠️ スマホでは click が届かないことがあったので、譲は「指を離した時」に数える（pointerup）。
+ *   click は、キーボード操作など pointer が無い場合の予備（二重に数えない）。
  */
 function makeChip(key, label, set, otherSet) {
   const isGive = !lookingFor;
@@ -118,30 +128,7 @@ function makeChip(key, label, set, otherSet) {
     class: `chip ${on ? cls : ''}${isGive && n > 1 ? ' num' : ''}`, type: 'button',
   }, text);
 
-  let timer = 0;
-  let longPressed = false;
-  const clearTimer = () => { clearTimeout(timer); timer = 0; };
-  if (isGive) {
-    chip.addEventListener('pointerdown', () => {
-      longPressed = false;
-      clearTimer();
-      timer = setTimeout(() => {
-        longPressed = true;
-        if (on) {
-          set.delete(key);
-          delete mine.count[key];
-          persist();
-          drawScenes();
-        }
-      }, 500);
-    });
-    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
-      chip.addEventListener(ev, clearTimer);
-    }
-    chip.addEventListener('contextmenu', (e) => e.preventDefault());
-  }
-  chip.addEventListener('click', () => {
-    if (longPressed) { longPressed = false; return; }
+  const tap = () => {
     if (isGive) {
       mine.count[key] = Math.min((mine.count[key] || 0) + 1, 99);
       set.add(key);
@@ -155,6 +142,51 @@ function makeChip(key, label, set, otherSet) {
     }
     persist();
     drawScenes();
+  };
+
+  let timer = 0;
+  let pressed = false;
+  let longDone = false;
+  let suppressClick = false;
+  let sx = 0;
+  let sy = 0;
+  const clear = () => { clearTimeout(timer); timer = 0; chip.classList.remove('holding'); };
+
+  if (isGive) {
+    chip.addEventListener('pointerdown', (e) => {
+      pressed = true;
+      longDone = false;
+      sx = e.clientX;
+      sy = e.clientY;
+      clear();
+      chip.classList.add('holding');
+      timer = setTimeout(() => {
+        longDone = true;
+        if (on) {
+          set.delete(key);
+          delete mine.count[key];
+          persist();
+          drawScenes();
+        }
+      }, LONG_PRESS_MS);
+    });
+    chip.addEventListener('pointermove', (e) => {
+      // 指がずれた（スクロールなど）ときは、押したことにしない。
+      if (pressed && Math.hypot(e.clientX - sx, e.clientY - sy) > 12) { pressed = false; clear(); }
+    });
+    chip.addEventListener('pointerup', () => {
+      clear();
+      if (!pressed) return;
+      pressed = false;
+      suppressClick = true;
+      if (!longDone) tap();
+    });
+    chip.addEventListener('pointercancel', () => { pressed = false; clear(); });
+    chip.addEventListener('contextmenu', (e) => e.preventDefault());
+  }
+  chip.addEventListener('click', () => {
+    if (suppressClick) { suppressClick = false; return; }
+    tap();
   });
   return chip;
 }
@@ -188,97 +220,6 @@ async function shareLink() {
   try {
     await navigator.share({ text: `${LINK_BASE}${currentCode}\n#サク写シャッ! #生写真交換` });
   } catch (_) { /* やめた時も何もしない */ }
-}
-
-// ---- 相手のコードを読む ----
-
-let stream = null;
-let scanning = false;
-
-async function startScan() {
-  $('scanner').hidden = false;
-  $('scanner').scrollIntoView({ behavior: 'smooth', block: 'center' });
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
-      audio: false,
-    });
-  } catch (_) {
-    toast('カメラを使えません。写真から読み取ってください');
-    return;
-  }
-  const video = $('video');
-  video.srcObject = stream;
-  await video.play().catch(() => {});
-  scanning = true;
-  requestAnimationFrame(tick);
-}
-
-function stopScan() {
-  scanning = false;
-  if (stream) stream.getTracks().forEach((t) => t.stop());
-  stream = null;
-  $('scanner').hidden = true;
-}
-
-let lastError = 0;
-function tick() {
-  if (!scanning) return;
-  const video = $('video');
-  if (video.readyState >= 2 && video.videoWidth) {
-    const found = decodeFrom(video, video.videoWidth, video.videoHeight);
-    if (found) return;
-  }
-  requestAnimationFrame(tick);
-}
-
-/** 映像・画像から二次元コードを探す。見つかって開けたら true。 */
-function decodeFrom(source, w, h) {
-  const canvas = $('canvas');
-  // 大きすぎる画像は縮める（重くならないように）。
-  const scale = Math.min(1, 1600 / Math.max(w, h));
-  canvas.width = Math.round(w * scale);
-  canvas.height = Math.round(h * scale);
-  const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  ctx.drawImage(source, 0, 0, canvas.width, canvas.height);
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  // eslint-disable-next-line no-undef
-  const qr = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
-  if (!qr || !qr.data) return false;
-  return openCode(qr.data);
-}
-
-function openCode(text) {
-  const code = extractCode(text);
-  if (!code) {
-    const now = Date.now();
-    if (now - lastError > 3000) {
-      lastError = now;
-      toast('交換用のコードではありません');
-    }
-    return false;
-  }
-  stopScan();
-  location.href = `t/#${encodeURIComponent(code)}`;
-  return true;
-}
-
-function readPhoto(e) {
-  const file = e.target.files && e.target.files[0];
-  e.target.value = '';
-  if (!file) return;
-  const url = URL.createObjectURL(file);
-  const img = new Image();
-  img.onload = () => {
-    const ok = decodeFrom(img, img.naturalWidth, img.naturalHeight);
-    URL.revokeObjectURL(url);
-    if (!ok) toast('二次元コードが見つかりませんでした');
-  };
-  img.onerror = () => {
-    URL.revokeObjectURL(url);
-    toast('写真を開けませんでした');
-  };
-  img.src = url;
 }
 
 // ---- 読み取り履歴（この端末の中だけ・10件） ----
