@@ -52,7 +52,13 @@ export function loadMine() {
     const raw = localStorage.getItem(MINE_KEY);
     if (!raw) return null;
     const v = JSON.parse(raw);
-    return { name: v.name || '', give: new Set(v.give || []), want: new Set(v.want || []) };
+    return {
+      name: v.name || '',
+      give: new Set(v.give || []),
+      want: new Set(v.want || []),
+      // 譲の枚数（この端末の中だけ。コードには入らない＝相手には「あるかないか」だけ伝わる）
+      count: v.count && typeof v.count === 'object' ? v.count : {},
+    };
   } catch (_) {
     return null;
   }
@@ -61,11 +67,38 @@ export function loadMine() {
 export function saveMine(mine) {
   try {
     localStorage.setItem(MINE_KEY, JSON.stringify({
-      name: mine.name, give: [...mine.give], want: [...mine.want],
+      name: mine.name, give: [...mine.give], want: [...mine.want], count: mine.count || {},
     }));
   } catch (_) { /* 保存できなくても画面は使える */ }
 }
 
 export function clearMine() {
   try { localStorage.removeItem(MINE_KEY); } catch (_) {}
+}
+
+// ---- 読み取った交換票の履歴（この端末の中だけ・新しい順に10件） ----
+const HISTORY_KEY = 'sakusyasya.history.v1';
+export const HISTORY_MAX = 10;
+
+/** [{code, name, at}]（新しい順）。壊れていたら空。 */
+export function loadHistory() {
+  try {
+    const v = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+    if (!Array.isArray(v)) return [];
+    return v
+      .filter((h) => h && typeof h.code === 'string' && h.code.length <= 3000)
+      .slice(0, HISTORY_MAX)
+      .map((h) => ({ code: h.code, name: String(h.name || '').slice(0, 40), at: Number(h.at) || 0 }));
+  } catch (_) {
+    return [];
+  }
+}
+
+/** 同じコードは1件にまとめて先頭へ。10件を超えた分は古いものから消す。 */
+export function addHistory(code, name) {
+  try {
+    const rest = loadHistory().filter((h) => h.code !== code);
+    const next = [{ code, name: name || '', at: Date.now() }, ...rest].slice(0, HISTORY_MAX);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(next));
+  } catch (_) { /* 保存できなくても画面は使える */ }
 }

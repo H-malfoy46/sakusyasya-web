@@ -17,6 +17,15 @@ const el = (tag, attrs = {}, ...children) => {
 };
 export { el };
 
+/**
+ * 種類の表示は漢字1文字（アプリと同じ）。寄り→寄／引き→引／座り→座。
+ * 丸数字（寄り① など）は残す。中・縦・寝・組体操はそのまま。
+ * ⚠️ 表示だけ。コードの中身（キー）は元の名前のまま使う。
+ */
+export function poseLabel(pose) {
+  return pose.replace(/^寄り/, '寄').replace(/^引き/, '引').replace(/^座り/, '座');
+}
+
 /** 丸数字つきの名前は「苗字 ①」に詰める（アプリと同じ）。 */
 export function displayMember(name) {
   const m = name.match(/^(.*?)\s?([①-⑳])/);
@@ -32,8 +41,8 @@ export function renderSlip(root, result, mine) {
   let lookingFor = true; // true＝求、false＝譲
   const tabs = el('div', { class: 'tabs' });
   const body = el('div');
-  const wantBtn = el('button', { class: 'want', type: 'button' }, `求 ${result.want.size}`);
-  const giveBtn = el('button', { class: 'give', type: 'button' }, `譲 ${result.give.size}`);
+  const wantBtn = el('button', { class: 'want', type: 'button' }, '求');
+  const giveBtn = el('button', { class: 'give', type: 'button' }, '譲');
   wantBtn.addEventListener('click', () => { lookingFor = true; draw(); });
   giveBtn.addEventListener('click', () => { lookingFor = false; draw(); });
   tabs.append(wantBtn, giveBtn);
@@ -65,7 +74,7 @@ export function renderSlip(root, result, mine) {
           const key = `${scene}|${member}|${p}`;
           const on = shown.has(key);
           const hot = on && other.has(key);
-          chips.append(el('span', { class: `chip ${hot ? 'hot' : on ? cls : ''}` }, p));
+          chips.append(el('span', { class: `chip ${hot ? 'hot' : on ? cls : ''}` }, poseLabel(p)));
         }
         rows.push(el('div', { class: 'row' },
           el('div', { class: 'member', title: member }, displayMember(member)), chips));

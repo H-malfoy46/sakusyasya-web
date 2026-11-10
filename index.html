@@ -24,8 +24,8 @@
     <section id="edit" class="card">
       <input id="name" class="input" type="text" maxlength="20" placeholder="名前" autocomplete="off">
       <div class="tabs">
-        <button id="tabWant" class="want on" type="button">求 0</button>
-        <button id="tabGive" class="give" type="button">譲 0</button>
+        <button id="tabWant" class="want on" type="button">求</button>
+        <button id="tabGive" class="give" type="button">譲</button>
       </div>
       <div id="scenes"></div>
     </section>
@@ -44,6 +44,12 @@
       </div>
     </section>
 
+    <!-- 読み取り履歴 -->
+    <section id="history" class="card" hidden>
+      <div class="heading">読み取り履歴</div>
+      <div id="historyList"></div>
+    </section>
+
     <!-- 相手のコードを読む -->
     <section id="scanner" class="card center" hidden>
       <video id="video" playsinline muted></video>
@@ -53,13 +59,10 @@
       <button id="stopScan" class="btn secondary" type="button">閉じる</button>
     </section>
 
-    <section class="card">
-      <button id="clear" class="btn danger" type="button">交換票を消す</button>
-    </section>
   </div>
   <div id="toast" class="toast" hidden></div>
 </main>
-<footer>サク写シャッ! は非公式のファンアプリです。</footer>
+<footer>サク写シャッ! は非公式のファンアプリです<br><a href="https://sites.google.com/view/sakusyashh-privacy-policy" target="_blank" rel="noopener noreferrer">プライバシーポリシー</a></footer>
 <script src="vendor/qrcode-generator-1.4.4.js"></script>
 <script src="vendor/jsQR-1.4.0.js"></script>
 <script type="module" src="js/home.js"></script>

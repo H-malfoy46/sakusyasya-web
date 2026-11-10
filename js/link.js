@@ -3,7 +3,7 @@
 // 共有リンク（https://sakusyasya.h-marufoy.com/t/#コード）を開いたときの画面。
 // コードは # の後ろにあるので、ブラウザはサーバーへ送らない。読み解きはこの端末の中だけで行う。
 
-import { APP_STORE_URL, checkOpenOrClose, loadCodec, loadMine } from './common.js';
+import { APP_STORE_URL, addHistory, checkOpenOrClose, loadCodec, loadMine } from './common.js';
 import { el, renderQr, renderSlip } from './view.js';
 
 const $ = (id) => document.getElementById(id);
@@ -30,6 +30,8 @@ async function main() {
   }
   const r = await codec.decode(code);
   if (!r.ok) return showError(r.error);
+
+  addHistory(code, r.userName); // 読み取れたものだけ、履歴に残す（この端末の中だけ）
 
   // 見出し：「〜さん」はピンク、「の交換票」は紺（アプリと同じ）。
   const h = $('heading');
